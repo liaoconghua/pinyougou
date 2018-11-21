@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:security="http://www.springframework.org/schema/security"
+       xmlns:sucurity="http://www.springframework.org/schema/security"
+       xmlns:dubbo="http://code.alibabatech.com/schema/dubbo"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd http://code.alibabatech.com/schema/dubbo http://code.alibabatech.com/schema/dubbo/dubbo.xsd">
+
+    <!--########## 配置请求URL拦截规则 ##########-->
+    <!-- 配置哪些请求URL不需要拦截 -->
+    <security:http pattern="/*.html" security="none"/>
+    <security:http pattern="/css/**" security="none"/>
+    <security:http pattern="/img/**" security="none"/>
+    <security:http pattern="/js/**" security="none"/>
+    <security:http pattern="/plugins/**" security="none"/>
+    <security:http pattern="/seller/save" security="none"/>
+    <security:http pattern="/user/verifyCodeImage" security="none"/>
+    <!--<security:http pattern="/user/login" security="none"/>-->
+
+    <!-- 配置认证入口 -->
+    <bean id="authenticationEntryPoint"
+          class="org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint">
+        <!-- 配置认证处理请求地址 -->
+        <constructor-arg value="/user/login"/>
+    </bean>
+
+    <!-- 配置哪些请求URL需要拦截 -->
+    <security:http entry-point-ref="authenticationEntryPoint">
+        <!--
+          配置所有登录用户或未登录用户都能访问的请求地址
+          permitAll: 会进Security的登录Filter，如果是登录用户，可以获取到登录用户名
+       -->
+        <security:intercept-url pattern="/user/login" access="permitAll"/>
+        <!-- 配置剩余的请求地址都需要ROLE_SELLER角色才可以访问 -->
+        <security:intercept-url pattern="/**" access="hasRole('SELLER')"/>
+        <!-- 配置开启表单登录 -->
+        <security:form-login
+                login-page="/shoplogin.html"
+                default-target-url="/admin/index.html"
+                always-use-default-target="true"
+                authentication-failure-url="/shoplogin.html"/>
+        <!-- 配置跨站请求伪造不可用-->
+        <security:csrf disabled="true"/>
+        <!-- 配置头信息，指定框架页策略(iframe子窗口也可以访问)-->
+        <security:headers>
+            <!--same origin: 表示该页面可以在相同域名页面的 frame 中显示。-->
+            <sucurity:frame-options policy="SAMEORIGIN"/>
+        </security:headers>
+        <!-- 配置退出登录 -->
+        <security:logout logout-url="/logout"
+                         logout-success-url="/shoplogin.html"/>
+    </security:http>
+
+    <!-- ############## 配置dubbo服务消费者 ############## -->
+    <!-- 配置当前应用的名称 -->
+    <dubbo:application name="pinyougou-shop-web"/>
+    <!-- 配置zookeeper作为注册中心，发现服务地址 -->
+    <dubbo:registry address="zookeeper://192.168.12.131:2181"/>
+    <!--<dubbo:annotation package="com.pinyougou.shop.controller" />-->
+    <!-- 配置引用单个服务，产生服务接口代理对象 -->
+    <dubbo:reference id="sellerService"
+                     interface="com.pinyougou.sellergoods.service.SellerService"/>
+
+    <!-- 配置自定义的认证服务 -->
+    <bean id="userDetailsService"
+          class="com.pinyougou.shop.service.UserDetailsServiceImpl">
+        <property name="sellerService" ref="sellerService"/>
+    </bean>
+
+    <!-- 配置密码加密 -->
+    <bean id="bcryptEncoder"
+          class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder"/>
+
+    <!-- 配置认证管理器 -->
+    <security:authentication-manager id="authenticationManager">
+        <!-- 配置认证提供者 -->
+        <security:authentication-provider
+                user-service-ref="userDetailsService">
+            <!-- 设置加密方式 -->
+            <security:password-encoder ref="bcryptEncoder"/>
+        </security:authentication-provider>
+    </security:authentication-manager>
+
+    <!-- 配置自定义url登录bean类 -->
+    <bean class="com.pinyougou.shop.controller.LoginController"/>
+
+</beans>

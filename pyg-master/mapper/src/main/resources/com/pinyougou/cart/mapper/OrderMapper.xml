@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pinyougou.cart.mapper.OrderMapper">
+
+    <!--<resultMap id="orderMapList" type="list" autoMapping="true">-->
+    <!--<id column="order_id" property="orderId"/>-->
+    <!--</resultMap>-->
+    <!--&lt;!&ndash; 查询该用户下的所有订单resultMap="orderMapList" &ndash;&gt;-->
+    <!--<select id="findOrderByUsername" resultType="map">-->
+    <!--select o.order_id    orderId,-->
+    <!--o.update_time updateTime,-->
+    <!--o.payment,-->
+    <!--o.status,-->
+    <!--s.nick_name   nickName,-->
+    <!--oi.title,-->
+    <!--oi.price,-->
+    <!--oi.num-->
+    <!--from pinyougou_db.tb_order o-->
+    <!--left join pinyougou_db.tb_seller s on s.seller_id = o.seller_id-->
+    <!--left join pinyougou_db.tb_order_item oi ON o.order_id = oi.order_id-->
+    <!--where user_id = #{username}-->
+    <!--</select>-->
+
+    <!--<resultMap id="orderMapList" type="map" autoMapping="true">-->
+    <!--<id column="orderId" property="orderId"/>-->
+    <!--<collection property="orderItemList" ofType="OrderItem">-->
+    <!--<result column="title" property="title"/>-->
+    <!--<result column="price" property="price"/>-->
+    <!--<result column="num" property="num"/>-->
+    <!--</collection>-->
+    <!--</resultMap>-->
+    <!--&lt;!&ndash; 查询该用户下的所有订单 &ndash;&gt;-->
+    <!--<select id="findOrderByUsername" resultMap="orderMapList">-->
+    <!--select o.order_id    orderId,-->
+    <!--o.update_time updateTime,-->
+    <!--o.payment,-->
+    <!--o.status,-->
+    <!--s.nick_name   nickName,-->
+    <!--oi.title,-->
+    <!--oi.price,-->
+    <!--oi.num-->
+    <!--from pinyougou_db.tb_order o-->
+    <!--left join pinyougou_db.tb_seller s on s.seller_id = o.seller_id-->
+    <!--left join pinyougou_db.tb_order_item oi ON o.order_id = oi.order_id-->
+    <!--where user_id = #{username}-->
+    <!--</select>-->
+
+    <resultMap id="orderItemMapList" type="map" autoMapping="true">
+        <result column="goods_id" property="goodsId" javaType="string"/>
+    </resultMap>
+    <select id="getOrderItemList" resultMap="orderItemMapList">
+        select goods_id, title, price, num, pic_path picPath
+        from pinyougou_db.tb_order_item
+        where order_id = #{orderId}
+    </select>
+    <resultMap id="orderMapList" type="map" autoMapping="true">
+        <id column="orderId" property="orderId" javaType="string"/>
+        <collection column="orderId" property="orderItemList"
+                    ofType="map" select="getOrderItemList"/>
+    </resultMap>
+    <!-- 查询该用户下的所有订单 -->
+    <select id="findOrderByUsername" resultMap="orderMapList">
+        select o.order_id orderId,
+        o.payment_type paymentType,
+        o.create_time createTime,
+        o.update_time updateTime,
+        o.payment_time paymentTime,
+        o.consign_time consignTime,
+        o.end_time endTime,
+        o.close_time closeTime,
+        o.payment,
+        o.status,
+        s.nick_name nickName
+        from pinyougou_db.tb_order o
+        left join pinyougou_db.tb_seller s on s.seller_id = o.seller_id
+        where user_id = #{username}
+        <if test="status != null and status != ''">
+            and o.status = #{status}
+        </if>
+    </select>
+</mapper>
